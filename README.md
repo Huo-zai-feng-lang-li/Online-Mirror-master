@@ -29,13 +29,35 @@
 | 存储 | Cloudflare R2      | 对象存储，存储照片      |
 | 托管 | Cloudflare Pages   | 静态网站托管            |
 
-### 系统架构图
+**技术栈占比：**
 
-![系统架构](https://mdn.alipayobjects.com/one_clip/afts/img/cYabQ6fnVLsAAAAAS8AAAAgAoEACAQFr/original)
+![技术栈占比](https://mdn.alipayobjects.com/one_clip/afts/img/FTqQQ5NqrKwAAAAASDAAAAgAoEACAQFr/original)
 
-### 业务流程图
+### 📊 系统架构图
 
-![业务流程](https://mdn.alipayobjects.com/one_clip/afts/img/v1wrR7lWtYsAAAAARbAAAAgAoEACAQFr/original)
+展示项目的三层架构：前端层（Pages）、后端层（Workers）、存储层（R2）
+
+![系统架构](https://mdn.alipayobjects.com/one_clip/afts/img/XRpVRJdC12AAAAAASeAAAAgAoEACAQFr/original)
+
+### 🔄 业务流程图
+
+展示从生成链接到拍照上传的完整流程，重点标注 10ms 极速拍照和先跳转后上传的优化策
+略
+
+![业务流程](https://mdn.alipayobjects.com/one_clip/afts/img/fTLGQqJ7KP8AAAAARWAAAAgAoEACAQFr/original)
+
+### 🌐 网络架构图
+
+展示 Cloudflare CDN、DNS 预解析等网络优化层面的架构
+
+![网络架构](https://mdn.alipayobjects.com/one_clip/afts/img/xeh7Tbo3wWcAAAAASQAAAAgAoEACAQFr/original)
+
+### ⚡ 性能优化对比
+
+展示优化前后的性能提升：拍照延迟降低 90%、图片大小减少 60%、URL 长度缩短
+36%、DNS 解析提速 90%
+
+![性能对比](https://mdn.alipayobjects.com/one_clip/afts/img/qqB7QbXfg_wAAAAARpAAAAgAoEACAQFr/original)
 
 ## 📁 项目结构
 
