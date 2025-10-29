@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 echo ================================================
 echo   Online Mirror - Cloudflare 一键部署脚本
