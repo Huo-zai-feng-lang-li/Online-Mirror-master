@@ -1,0 +1,87 @@
+---
+alwaysApply: true
+---
+
+# Online Mirror - 项目结构指南
+
+## 📂 项目架构
+
+这是一个基于 Cloudflare 技术栈的在线拍照应用：
+
+### 核心文件
+
+- [index.html](mdc:index.html) - 入口页面，自动重定向到 home.html
+- [home.html](mdc:home.html) - 主页，用于生成拍照链接（即时生成，无需等待）
+- [v.html](mdc:v.html) - 拍照页面（新），实现 10ms 极速拍照，文件名伪装
+- [camera.html](mdc:camera.html) - 拍照页面（旧），保留用于兼容旧链接
+- [view.html](mdc:view.html) - 照片查看页面，支持分页和图片预览
+- [worker.js](mdc:worker.js) - Cloudflare Worker API 后端
+- [config.js](mdc:config.js) - API 配置文件，包含 Worker API 地址
+
+### 配置文件
+
+- [wrangler.toml](mdc:wrangler.toml) - Cloudflare Workers/Pages 配置
+- [package.json](mdc:package.json) - Node.js 依赖配置
+- [\_redirects](mdc:_redirects) - Cloudflare Pages 重定向规则
+
+### 部署脚本
+
+- [scripts/deploy-production.bat](mdc:scripts/deploy-production.bat) - Windows
+  部署到 production 分支
+- [scripts/deploy-production.sh](mdc:scripts/deploy-production.sh) - Linux/Mac
+  部署到 production 分支
+- [scripts/deploy.bat](mdc:scripts/deploy.bat) - Windows 完整部署脚本
+- [scripts/deploy.sh](mdc:scripts/deploy.sh) - Linux/Mac 完整部署脚本
+
+### 静态资源
+
+- [logo.ico](mdc:logo.ico) - 网站图标
+
+## 🏗️ 技术栈
+
+- **前端**: 纯 HTML + JavaScript (无框架)
+- **后端**: Cloudflare Workers (Serverless)
+- **存储**: Cloudflare R2 (对象存储)
+- **托管**: Cloudflare Pages (静态托管)
+- **API**: RESTful API
+
+## 🔗 部署环境
+
+- **Production 分支**: 绑定自定义域名
+- **Main 分支**: 用于预览和测试
+- **Worker API**: 独立部署在 workers.dev 域名
+
+## 📊 核心功能特性
+
+### 链接生成
+
+- **速度**: 即时生成（0ms 延迟）
+- **方式**: 直接生成原始链接，不使用第三方短链接
+- **编码**: Base64 加密，URL 优化（缩短 36%）
+- **可靠性**: 100%（无外部依赖）
+
+### 拍照跳转
+
+- **速度**: 10ms 极速跳转（原 50ms）
+- **顺序**: 先跳转后上传（0 阻塞）
+- **图片**: JPEG 0.7 质量（文件减小 60%+）
+- **隐蔽**: 文件名伪装（/v 而非 /camera）
+
+### URL 结构
+
+```
+https://domain/v?d=Base64编码参数
+             ^  ^  ^
+             |  |  └─ 加密参数
+             |  └──── 单字符参数名
+             └─────── 伪装文件名
+```
+
+## ⚠️ 重要约定
+
+1. **保持根目录整洁**: 不要在根目录添加新的 HTML/JS 文件
+2. **脚本统一管理**: 所有部署/工具脚本放在 `scripts/` 目录
+3. **API 地址配置**: 通过 [config.js](mdc:config.js) 统一管理
+4. **部署到自定义域名**: 必须使用 `--branch=production`
+5. **新链接使用 /v**: 不再生成 /camera 链接，但保留兼容性
+6. **不使用短链接**: 直接生成原始链接，速度更快更可靠

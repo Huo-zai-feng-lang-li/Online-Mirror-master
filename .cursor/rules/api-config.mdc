@@ -1,0 +1,160 @@
+---
+description: API配置和请求规范
+---
+
+# API 配置和请求规范
+
+## 🔧 API 配置
+
+所有 API 请求必须通过 [config.js](mdc:config.js) 中定义的地址：
+
+```javascript
+// config.js
+const API_BASE_URL = "https://online-mirror.1334132303.workers.dev";
+
+window.API_CONFIG = {
+  BASE_URL: API_BASE_URL,
+  UPLOAD: `${API_BASE_URL}/api/upload`,
+  PHOTOS: `${API_BASE_URL}/api/photos`,
+};
+```
+
+## ✅ 正确的 API 调用方式
+
+### 引入配置
+
+在 HTML 文件中先引入 config.js：
+
+```html
+<script src="config.js"></script>
+<script>
+  // 然后才能使用 window.API_CONFIG
+</script>
+```
+
+### 上传照片
+
+```javascript
+fetch(window.API_CONFIG.UPLOAD, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    id: id,
+    image: imageData,
+  }),
+});
+```
+
+### 获取照片列表
+
+```javascript
+fetch(
+  `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(
+    id
+  )}&page=${page}&limit=${limit}`
+);
+```
+
+### 删除照片
+
+```javascript
+fetch(`${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(id)}`, {
+  method: "DELETE",
+});
+```
+
+## ❌ 错误的方式
+
+```javascript
+// ❌ 不要使用相对路径
+fetch("/api/upload"); // 错误：会请求 Pages 域名而不是 Worker
+
+// ❌ 不要硬编码 API 地址
+fetch("https://online-mirror.1334132303.workers.dev/api/upload"); // 错误：不便于维护
+```
+
+## 🚀 性能优化
+
+### 异步上传（拍照页面）
+
+在 [camera.html](mdc:camera.html) 中，拍照后立即跳转，异步上传：
+
+```javascript
+// 拍照
+context.drawImage(video, 0, 0, 480, 640);
+const imageData = canvas.toDataURL("image/png");
+
+// 异步上传（不等待结果）
+fetch(window.API_CONFIG.UPLOAD, {
+  method: "POST",
+  body: JSON.stringify({ id, image: imageData }),
+}).catch((error) => console.error(error));
+
+// 立即跳转
+window.location.href = redirectUrl;
+```
+
+### 最小延迟
+
+```javascript
+// ✅ 使用最小必要延迟
+setTimeout(() => {
+  // 拍照
+}, 50); // 仅50ms
+```
+
+## 🔒 CORS 配置
+
+Worker API ([worker.js](mdc:worker.js)) 已配置 CORS 头：
+
+```javascript
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+```
+
+所有响应必须包含这些头部。
+
+## 📋 API 端点
+
+### POST /api/upload
+
+上传照片到 R2 存储
+
+**请求体**:
+
+```json
+{
+  "id": "用户ID",
+  "image": "data:image/png;base64,..."
+}
+```
+
+### GET /api/photos
+
+获取照片列表（分页）
+
+**查询参数**:
+
+- `id`: 用户 ID
+- `page`: 页码（从 0 开始）
+- `limit`: 每页数量
+
+### DELETE /api/photos
+
+删除指定 ID 的所有照片
+
+**查询参数**:
+
+- `id`: 用户 ID
+
+## ⚠️ 注意事项
+
+1. 所有 API 请求都要处理错误情况
+2. 使用 `encodeURIComponent()` 编码 URL 参数
+3. 异步操作要使用 `async/await` 或 `.catch()` 处理错误
+4. Worker 和 Pages 是独立部署的，必须使用完整 URL

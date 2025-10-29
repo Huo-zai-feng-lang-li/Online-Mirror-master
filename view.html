@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="logo.ico" />
+    <title>照片查看页面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- DNS 预解析 - 加速图片加载 -->
+    <link rel="dns-prefetch" href="//online-mirror.1334132303.workers.dev" />
+    <link
+      rel="preconnect"
+      href="https://online-mirror.1334132303.workers.dev"
+      crossorigin
+    />
+
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #f5f5f5;
+        min-height: 100vh;
+        justify-content: center;
+      }
+      .container {
+        width: 90%;
+        max-width: 600px;
+        margin: 15px;
+        background-color: #ffffff;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .container img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+      .container img:hover {
+        transform: scale(1.02);
+      }
+      .image-wrapper {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .image-time {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 10px;
+        font-weight: 500;
+        text-align: center;
+      }
+      /* 图片预览模态框 */
+      .image-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 10001;
+        justify-content: center;
+        align-items: center;
+        cursor: zoom-out;
+        animation: fadeIn 0.3s ease-out;
+      }
+      .image-modal img {
+        max-width: 95%;
+        max-height: 95%;
+        object-fit: contain;
+        box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+      }
+      .image-modal.show {
+        display: flex;
+      }
+      .close-modal {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        color: #fff;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 10002;
+      }
+      .close-modal:hover {
+        color: #ccc;
+      }
+      button,
+      a {
+        display: inline-block;
+        margin: 10px 5px;
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        text-decoration: none;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      button:hover,
+      a:hover {
+        background-color: #45a049;
+      }
+      .delete-btn {
+        background-color: #f44336;
+      }
+      .delete-btn:hover {
+        background-color: #da190b;
+      }
+      p {
+        line-height: 1.6;
+        color: #333;
+        margin: 10px 0;
+      }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+      .pagination {
+        margin-top: 20px;
+      }
+      @media (max-width: 480px) {
+        .container {
+          padding: 15px;
+        }
+        button,
+        a {
+          font-size: 14px;
+          padding: 8px 16px;
+        }
+      }
+      /* 自定义提示框样式 */
+      .toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+        animation: slideDown 0.3s ease-out;
+        max-width: 80%;
+        word-wrap: break-word;
+        text-align: center;
+      }
+      .toast.success {
+        background-color: #4caf50;
+      }
+      .toast.error {
+        background-color: #f44336;
+      }
+      .toast.warning {
+        background-color: #ff9800;
+      }
+      @keyframes slideDown {
+        from {
+          top: -100px;
+          opacity: 0;
+        }
+        to {
+          top: 20px;
+          opacity: 1;
+        }
+      }
+      @keyframes slideUp {
+        from {
+          top: 20px;
+          opacity: 1;
+        }
+        to {
+          top: -100px;
+          opacity: 0;
+        }
+      }
+      .toast.hiding {
+        animation: slideUp 0.3s ease-in forwards;
+        /* forwards 确保动画结束后保持最终状态（opacity: 0） */
+      }
+      /* 自定义确认对话框样式 */
+      .confirm-dialog {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        animation: fadeIn 0.3s ease-out;
+      }
+      .confirm-content {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        animation: scaleIn 0.3s ease-out;
+      }
+      .confirm-message {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 25px;
+      }
+      .confirm-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+      .confirm-btn {
+        padding: 10px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .confirm-btn.yes {
+        background-color: #f44336;
+        color: white;
+      }
+      .confirm-btn.yes:hover {
+        background-color: #da190b;
+      }
+      .confirm-btn.no {
+        background-color: #e0e0e0;
+        color: #333;
+      }
+      .confirm-btn.no:hover {
+        background-color: #d0d0d0;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes scaleIn {
+        from {
+          transform: scale(0.8);
+        }
+        to {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="content">
+        <div class="loading">加载中...</div>
+      </div>
+    </div>
+
+    <!-- 图片预览模态框 -->
+    <div class="image-modal" id="imageModal" onclick="closeModal()">
+      <span class="close-modal">&times;</span>
+      <img id="modalImage" src="" alt="预览图片" />
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+      // 图片预览功能
+      function openModal(imageSrc) {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
+        modal.classList.add("show");
+        modalImg.src = imageSrc;
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("imageModal");
+        modal.classList.remove("show");
+        document.body.style.overflow = "auto";
+      }
+
+      // 自定义提示函数
+      function showToast(message, type = "default", duration = 2500) {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add("hiding");
+          setTimeout(() => {
+            // 确保元素存在后再移除，避免闪烁
+            if (toast.parentNode) {
+              document.body.removeChild(toast);
+            }
+          }, 350); // 稍微延长等待时间，确保动画完全结束
+        }, duration);
+      }
+
+      // 自定义确认对话框
+      function showConfirm(message) {
+        return new Promise((resolve) => {
+          const dialog = document.createElement("div");
+          dialog.className = "confirm-dialog";
+          dialog.innerHTML = `
+            <div class="confirm-content">
+              <div class="confirm-message">${message}</div>
+              <div class="confirm-buttons">
+                <button class="confirm-btn no">取消</button>
+                <button class="confirm-btn yes">确定</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(dialog);
+
+          dialog.querySelector(".confirm-btn.yes").onclick = () => {
+            document.body.removeChild(dialog);
+            resolve(true);
+          };
+
+          dialog.querySelector(".confirm-btn.no").onclick = () => {
+            document.body.removeChild(dialog);
+            resolve(false);
+          };
+
+          dialog.onclick = (e) => {
+            if (e.target === dialog) {
+              document.body.removeChild(dialog);
+              resolve(false);
+            }
+          };
+        });
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get("id");
+      const page = parseInt(urlParams.get("page") || "0");
+      const imgsPerPage = 2;
+
+      if (!id) {
+        document.getElementById("content").innerHTML =
+          "<p>错误：缺少ID参数</p>";
+      } else {
+        loadPhotos();
+      }
+
+      async function loadPhotos() {
+        try {
+          const response = await fetch(
+            `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(
+              id
+            )}&page=${page}&limit=${imgsPerPage}`
+          );
+
+          if (!response.ok) {
+            throw new Error("加载失败");
+          }
+
+          const data = await response.json();
+          displayPhotos(data);
+        } catch (error) {
+          console.error("加载错误:", error);
+          document.getElementById("content").innerHTML =
+            "<p>加载照片失败，请稍后重试。</p>";
+        }
+      }
+
+      function displayPhotos(data) {
+        const { photos, total, currentPage, totalPages } = data;
+
+        let html = "";
+
+        if (total === 0) {
+          html = "<p>该ID下没有任何照片</p>";
+        } else {
+          html += `<button class="delete-btn" onclick="deleteAllPhotos()">清空所有照片</button>`;
+
+          photos.forEach((photo, index) => {
+            html += `
+                <div class="image-wrapper">
+                    <div class="image-time">📅 ${photo.time}</div>
+                    <img src="${photo.url}" alt="照片" onclick="openModal('${photo.url}')" title="点击查看大图">
+                </div>
+            `;
+          });
+
+          html += '<div class="pagination">';
+          if (currentPage > 0) {
+            html += `<a href="?id=${encodeURIComponent(id)}&page=0">首页</a>`;
+            html += `<a href="?id=${encodeURIComponent(id)}&page=${
+              currentPage - 1
+            }">上一页</a>`;
+          } else {
+            html += '<span style="color:#999;margin:0 5px;">上一页</span>';
+          }
+
+          html += ` <span style="margin:0 10px;">第 ${
+            currentPage + 1
+          }/${totalPages} 页</span> `;
+
+          if (currentPage < totalPages - 1) {
+            html += `<a href="?id=${encodeURIComponent(id)}&page=${
+              currentPage + 1
+            }">下一页</a>`;
+            html += `<a href="?id=${encodeURIComponent(id)}&page=${
+              totalPages - 1
+            }">末页</a>`;
+          } else {
+            html += '<span style="color:#999;margin:0 5px;">下一页</span>';
+          }
+          html += "</div>";
+        }
+
+        document.getElementById("content").innerHTML = html;
+      }
+
+      async function deleteAllPhotos() {
+        const confirmed = await showConfirm(
+          "确定清空所有照片？此操作不可恢复！"
+        );
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(id)}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (response.ok) {
+            showToast("已清空所有照片！", "success");
+            setTimeout(() => location.reload(), 1500);
+          } else {
+            throw new Error("删除失败");
+          }
+        } catch (error) {
+          console.error("删除错误:", error);
+          showToast("删除失败，请稍后重试", "error");
+        }
+      }
+    </script>
+  </body>
+</html>

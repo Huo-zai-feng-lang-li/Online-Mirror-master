@@ -1,0 +1,12 @@
+{
+  "name": "online-mirror-cloudflare",
+  "version": "1.0.0",
+  "description": "Online Mirror - Cloudflare版本",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

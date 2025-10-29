@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="logo.ico" />
+    <meta http-equiv="refresh" content="0;url=home.html" />
+    <title>Online Mirror - Cloudflare版</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f5f5f5;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      .container {
+        text-align: center;
+        color: #333;
+      }
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+      }
+      p {
+        font-size: 1.2em;
+        color: #666;
+      }
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: #4caf50;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🪞 Online Mirror</h1>
+      <p>正在跳转到主页...</p>
+      <div class="loading"></div>
+    </div>
+    <script>
+      setTimeout(function () {
+        window.location.href = "home.html";
+      }, 500);
+    </script>
+  </body>
+</html>

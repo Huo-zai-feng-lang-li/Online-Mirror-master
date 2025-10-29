@@ -1,0 +1,24 @@
+# Cloudflare Pages HTTP Headers 配置
+# https://developers.cloudflare.com/pages/platform/headers/
+
+# 所有 HTML 页面
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# JavaScript 文件 - 缓存 1 小时
+/*.js
+  Cache-Control: public, max-age=3600
+  Content-Type: application/javascript; charset=utf-8
+
+# 图标文件 - 缓存 1 天
+/logo.ico
+  Cache-Control: public, max-age=86400
+
+# 静态资源 - 启用压缩
+/*
+  Content-Encoding: gzip
+

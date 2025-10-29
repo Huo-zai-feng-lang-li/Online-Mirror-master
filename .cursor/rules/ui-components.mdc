@@ -1,0 +1,137 @@
+---
+globs: *.html
+description: UI组件和交互设计规范
+---
+
+# UI 组件和交互规范
+
+## 🎨 设计原则
+
+1. **无感知体验**: 操作应尽可能快速、隐蔽
+2. **简洁界面**: 纯色背景 `#f5f5f5`，不使用渐变
+3. **现代化**: 使用圆角、阴影、动画提升体验
+4. **响应式**: 所有页面支持移动端
+
+## 🚫 禁止使用的组件
+
+### ❌ 原生弹窗
+
+```javascript
+// ❌ 不要使用
+alert("提示信息");
+confirm("确认吗？");
+prompt("请输入");
+```
+
+### ✅ 使用自定义组件
+
+#### Toast 提示
+
+```javascript
+// ✅ 使用自定义 Toast
+showToast("提示信息", "success"); // 成功
+showToast("错误信息", "error"); // 错误
+showToast("警告信息", "warning"); // 警告
+```
+
+参考实现见 [home.html](mdc:home.html) 或 [view.html](mdc:view.html)
+
+#### 确认对话框
+
+```javascript
+// ✅ 使用自定义确认框
+const confirmed = await showConfirm("确定删除吗？");
+if (confirmed) {
+  // 执行删除
+}
+```
+
+参考实现见 [view.html](mdc:view.html)
+
+## 🎯 标准组件样式
+
+### 页面容器
+
+```css
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 15px auto;
+  background-color: #ffffff;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+```
+
+### 按钮样式
+
+```css
+button {
+  padding: 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+```
+
+### 输入框样式
+
+```css
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+```
+
+## 📱 骨架屏加载
+
+用于 [camera.html](mdc:camera.html) 等需要隐蔽操作的页面：
+
+```html
+<div id="skeleton">
+  <div class="skeleton-item skeleton-title"></div>
+  <div class="skeleton-item skeleton-line"></div>
+  <div class="skeleton-item skeleton-image"></div>
+</div>
+```
+
+## 🔗 链接行为
+
+所有外部链接和生成的拍照链接应在新标签页打开：
+
+```javascript
+// ✅ 正确
+kd.target = "_blank";
+
+// ✅ 或
+window.open(url, "_blank");
+```
+
+## 🖼️ 图片处理
+
+### 图片展示
+
+- 使用 `object-fit: contain` 防止变形
+- 添加点击放大功能
+- 使用模态框显示大图
+
+### 图片优化
+
+- 拍照尺寸：480x640
+- 格式：PNG (base64 编码)
+- 异步上传，不阻塞用户操作
+
+参考 [view.html](mdc:view.html) 的图片预览实现

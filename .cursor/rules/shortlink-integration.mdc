@@ -1,0 +1,212 @@
+---
+description: 短链接集成说明
+---
+
+# 短链接集成说明
+
+## 🔗 集成的短链接服务
+
+项目已集成 [9lnk.io](https://9lnk.io/) 免费短链接服务，用于缩短生成的拍照链接。
+
+## 📋 API 信息
+
+### 端点
+
+```
+POST https://9lnk.io/create
+```
+
+### 请求格式
+
+```json
+{
+  "url": "要缩短的长链接",
+  "slug": "可选的自定义短链 (2-10个字符，仅字母和数字)"
+}
+```
+
+### 响应格式
+
+**成功**:
+
+```json
+{
+  "link": "https://9lnk.io/xxxx"
+}
+```
+
+**失败**:
+
+```json
+{
+  "message": "错误信息"
+}
+```
+
+## 🎯 实现位置
+
+短链接功能已集成到 [home.html](mdc:home.html) 的 `create()` 函数中。
+
+### 工作流程
+
+1. 用户输入 ID 和跳转地址
+2. 点击"生成链接"按钮
+3. 生成原始长链接（camera.html 带参数）
+4. 调用 9lnk.io API 转换为短链接
+5. 显示短链接给用户
+6. 如果 API 失败，降级使用原始长链接
+
+### 代码示例
+
+```javascript
+async function create() {
+  // ... 验证输入 ...
+
+  // 生成长链接
+  var longLink =
+    currentDirectory +
+    "camera.html?id=" +
+    encodeURIComponent(myid) +
+    "&url=" +
+    encodeURIComponent(url);
+
+  try {
+    // 调用短链接 API
+    const response = await fetch(window.API_CONFIG.SHORT_LINK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: longLink }),
+    });
+
+    const data = await response.json();
+
+    if (data.link) {
+      // 使用短链接
+      kd.href = data.link;
+      kd.innerText = data.link;
+      showToast("短链接生成成功！", "success");
+    }
+  } catch (error) {
+    // 降级：使用原始长链接
+    kd.href = longLink;
+    kd.innerText = longLink;
+    showToast("短链接生成失败，已使用原始链接", "warning");
+  }
+}
+```
+
+## ⚙️ 配置
+
+短链接 API 地址在 [config.js](mdc:config.js) 中配置：
+
+```javascript
+const SHORT_LINK_API = "https://9lnk.io/create";
+
+window.API_CONFIG = {
+  // ...
+  SHORT_LINK: SHORT_LINK_API,
+};
+```
+
+## ✨ 用户体验
+
+### 加载提示
+
+在调用 API 时显示：
+
+```
+正在生成短链接...
+```
+
+### 成功提示
+
+```
+短链接生成成功！
+```
+
+### 失败降级
+
+```
+短链接生成失败，已使用原始链接
+```
+
+## 🔄 降级策略
+
+为确保功能可用性，实现了降级策略：
+
+1. **第一选择**: 使用 9lnk.io 生成短链接
+2. **降级方案**: API 失败时使用原始长链接
+3. **用户通知**: Toast 提示告知用户当前使用的链接类型
+
+## 🛠️ 自定义短链
+
+9lnk.io 支持自定义短链（slug），可以通过请求体传递：
+
+```javascript
+body: JSON.stringify({
+  url: longLink,
+  slug: "custom123", // 可选，2-10字符，仅字母数字
+});
+```
+
+**限制**:
+
+- 长度：2-10 个字符
+- 字符：仅大小写字母和数字
+- 唯一性：不能与已存在的 slug 重复
+
+## ⚠️ 注意事项
+
+1. **网络依赖**: 短链接生成需要网络连接到 9lnk.io
+2. **CORS**: 9lnk.io API 支持跨域请求
+3. **错误处理**: 必须实现降级策略，确保功能可用
+4. **用户体验**: 使用 async/await 和加载提示优化体验
+
+## 📊 优势
+
+使用短链接的好处：
+
+1. **更简洁**: URL 更短，便于分享
+2. **美观**: 看起来更专业
+3. **易记**: 短链接更容易记忆
+4. **统计**: 9lnk.io 可能提供访问统计（待确认）
+
+## 🔧 故障排查
+
+### 问题：短链接生成失败
+
+**可能原因**:
+
+- 9lnk.io 服务不可用
+- 网络连接问题
+- CORS 限制
+
+**解决方案**:
+
+- 检查浏览器控制台错误
+- 确认 9lnk.io 服务状态
+- 降级方案会自动使用原始链接
+
+### 问题：总是使用原始链接
+
+**可能原因**:
+
+- config.js 未正确加载
+- API_CONFIG.SHORT_LINK 未定义
+
+**解决方案**:
+
+```javascript
+// 检查配置是否加载
+console.log(window.API_CONFIG.SHORT_LINK);
+```
+
+## 📝 未来改进
+
+可以考虑的增强功能：
+
+1. **自定义 slug**: 允许用户自定义短链接
+2. **链接预览**: 显示短链接指向的原始地址
+3. **访问统计**: 集成 9lnk.io 的访问统计功能（如有）
+4. **多服务支持**: 支持其他短链接服务作为备选
+5. **本地缓存**: 缓存已生成的短链接避免重复请求
