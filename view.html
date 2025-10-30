@@ -8,11 +8,7 @@
 
     <!-- DNS 预解析 - 加速图片加载 -->
     <link rel="dns-prefetch" href="//api.zk99999.dpdns.org" />
-    <link
-      rel="preconnect"
-      href="https://api.zk99999.dpdns.org"
-      crossorigin
-    />
+    <link rel="preconnect" href="https://api.zk99999.dpdns.org" crossorigin />
 
     <style>
       body {
@@ -773,15 +769,17 @@
         }
 
         try {
-          const deleteUrl = `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(id)}`;
+          const deleteUrl = `${
+            window.API_CONFIG.PHOTOS
+          }?id=${encodeURIComponent(id)}`;
           console.log("删除所有照片 - URL:", deleteUrl);
-          
+
           const response = await fetch(deleteUrl, {
             method: "DELETE",
           });
 
           console.log("删除响应状态:", response.status);
-          
+
           const result = await response.json();
           console.log("删除响应内容:", result);
 
@@ -812,20 +810,22 @@
         }
 
         try {
-          const deleteUrl = `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(
-            id
-          )}&key=${encodeURIComponent(currentPhotoKey)}`;
-          
+          const deleteUrl = `${
+            window.API_CONFIG.PHOTOS
+          }?id=${encodeURIComponent(id)}&key=${encodeURIComponent(
+            currentPhotoKey
+          )}`;
+
           console.log("删除单张照片 - URL:", deleteUrl);
           console.log("删除单张照片 - ID:", id);
           console.log("删除单张照片 - Key:", currentPhotoKey);
-          
+
           const response = await fetch(deleteUrl, {
             method: "DELETE",
           });
 
           console.log("删除响应状态:", response.status);
-          
+
           const result = await response.json();
           console.log("删除响应内容:", result);
 
