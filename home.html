@@ -198,10 +198,22 @@
       }
 
       function create() {
-        var myid = document.getElementById("myid").value;
-        var url = document.getElementById("url").value;
+        var myid = document.getElementById("myid").value.trim();
+        var url = document.getElementById("url").value.trim();
+
         if (myid === "" || url === "") {
           showToast("ID或跳转地址不能为空！", "warning");
+          return false;
+        }
+
+        // 验证 URL 格式
+        try {
+          new URL(url);
+        } catch (e) {
+          showToast(
+            "请输入有效的跳转地址（需包含 http:// 或 https://）",
+            "error"
+          );
           return false;
         }
 
@@ -209,8 +221,15 @@
 
         // 将参数编码为 Base64（格式：id|url）
         var params = myid + "|" + url;
-        // 直接Base64编码，URL更短
-        var encodedParams = btoa(unescape(encodeURIComponent(params)));
+        // 使用现代 API 替代废弃的 unescape
+        var encodedParams = btoa(
+          encodeURIComponent(params).replace(
+            /%([0-9A-F]{2})/g,
+            function (match, p1) {
+              return String.fromCharCode("0x" + p1);
+            }
+          )
+        );
 
         // 直接生成原始链接，使用伪装路径 /v（通过 _redirects 重写到 v.html）
         var link = currentDirectory + "v?d=" + encodedParams;

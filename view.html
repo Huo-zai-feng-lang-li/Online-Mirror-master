@@ -45,24 +45,74 @@
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         cursor: pointer;
-        transition: transform 0.3s ease;
-      }
-      .container img:hover {
-        transform: scale(1.02);
       }
       .image-wrapper {
         margin: 20px 0;
-        padding: 15px;
-        background: #f9f9f9;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+      .image-wrapper:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
       }
       .image-time {
-        font-size: 13px;
-        color: #666;
-        margin-bottom: 10px;
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 15px;
         font-weight: 500;
         text-align: center;
+        padding: 8px 16px;
+        background: rgba(76, 175, 80, 0.1);
+        border-radius: 20px;
+        display: inline-block;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .image-time-wrapper {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .ip-info {
+        text-align: center;
+        margin-bottom: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .ip-tag {
+        font-size: 12px;
+        color: #666;
+        background: rgba(33, 150, 243, 0.1);
+        padding: 4px 12px;
+        border-radius: 12px;
+        display: inline-block;
+        border: 1px solid rgba(33, 150, 243, 0.2);
+      }
+      .ip-tag.ip-location {
+        background: rgba(76, 175, 80, 0.1);
+        border-color: rgba(76, 175, 80, 0.3);
+        color: #2e7d32;
+        font-weight: 500;
+      }
+      .ip-tag.risk-warning {
+        background: rgba(255, 152, 0, 0.1);
+        border-color: rgba(255, 152, 0, 0.3);
+        color: #e65100;
+      }
+      .ip-tag.risk-danger {
+        background: rgba(244, 67, 54, 0.1);
+        border-color: rgba(244, 67, 54, 0.3);
+        color: #c62828;
+        font-weight: 500;
+      }
+      .ip-tag.risk-info {
+        background: rgba(156, 39, 176, 0.1);
+        border-color: rgba(156, 39, 176, 0.3);
+        color: #6a1b9a;
       }
       /* 图片预览模态框 */
       .image-modal {
@@ -80,11 +130,17 @@
         animation: fadeIn 0.3s ease-out;
       }
       .image-modal img {
-        max-width: 95%;
-        max-height: 95%;
+        max-width: none;
+        max-height: none;
         object-fit: contain;
         box-shadow: 0 4px 30px rgba(255, 255, 255, 0.1);
         border-radius: 5px;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      .image-modal img:active {
+        cursor: grabbing;
       }
       .image-modal.show {
         display: flex;
@@ -101,6 +157,37 @@
       }
       .close-modal:hover {
         color: #ccc;
+      }
+      .zoom-hint {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        font-size: 14px;
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 8px 16px;
+        border-radius: 20px;
+        z-index: 10002;
+        pointer-events: none;
+        animation: fadeIn 0.5s ease-out;
+      }
+      .delete-modal-btn {
+        position: absolute;
+        top: 20px;
+        left: 30px;
+        background-color: rgba(244, 67, 54, 0.9);
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 10002;
+        transition: background-color 0.3s ease;
+      }
+      .delete-modal-btn:hover {
+        background-color: rgba(244, 67, 54, 1);
       }
       button,
       a {
@@ -135,6 +222,36 @@
         text-align: center;
         padding: 20px;
         color: #666;
+      }
+      /* 骨架屏加载动画 */
+      .skeleton {
+        background: linear-gradient(
+          90deg,
+          #f0f0f0 25%,
+          #e0e0e0 50%,
+          #f0f0f0 75%
+        );
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+        border-radius: 8px;
+      }
+      .skeleton-image {
+        width: 100%;
+        height: 300px;
+        margin-bottom: 10px;
+      }
+      @keyframes skeleton-loading {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+      /* 图片懒加载占位 */
+      img[loading="lazy"] {
+        min-height: 200px;
+        background: #f0f0f0;
       }
       .pagination {
         margin-top: 20px;
@@ -281,26 +398,150 @@
     </div>
 
     <!-- 图片预览模态框 -->
-    <div class="image-modal" id="imageModal" onclick="closeModal()">
-      <span class="close-modal">&times;</span>
-      <img id="modalImage" src="" alt="预览图片" />
+    <div class="image-modal" id="imageModal" onclick="handleModalClick(event)">
+      <span class="close-modal" onclick="closeModal()">&times;</span>
+      <button
+        class="delete-modal-btn"
+        onclick="deleteCurrentPhoto()"
+        title="删除此照片"
+      >
+        🗑️ 删除
+      </button>
+      <div class="zoom-hint">🔍 滚动鼠标滚轮可放大/缩小</div>
+      <img
+        id="modalImage"
+        src=""
+        alt="预览图片"
+        onclick="event.stopPropagation()"
+      />
     </div>
 
     <script src="config.js"></script>
     <script>
-      // 图片预览功能
-      function openModal(imageSrc) {
+      // 图片预览功能 + 滚轮缩放 + 拖动
+      let currentScale = 1;
+      let minScale = 0.5;
+      let maxScale = 5;
+      let isDragging = false;
+      let startX, startY;
+      let translateX = 0,
+        translateY = 0;
+      let currentPhotoKey = null; // 记录当前查看的照片key
+
+      function openModal(imageSrc, photoKey) {
         const modal = document.getElementById("imageModal");
         const modalImg = document.getElementById("modalImage");
         modal.classList.add("show");
         modalImg.src = imageSrc;
+        currentPhotoKey = photoKey; // 保存照片key用于删除
         document.body.style.overflow = "hidden";
+
+        // 重置缩放和位置
+        currentScale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+
+        // 添加滚轮缩放事件
+        modal.addEventListener("wheel", handleZoom, { passive: false });
+
+        // 添加拖动事件
+        modalImg.addEventListener("mousedown", startDrag);
+        document.addEventListener("mousemove", drag);
+        document.addEventListener("mouseup", stopDrag);
+
+        // 触摸事件支持
+        modalImg.addEventListener("touchstart", startDragTouch);
+        document.addEventListener("touchmove", dragTouch);
+        document.addEventListener("touchend", stopDrag);
       }
 
       function closeModal() {
         const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
         modal.classList.remove("show");
         document.body.style.overflow = "auto";
+
+        // 移除所有事件
+        modal.removeEventListener("wheel", handleZoom);
+        modalImg.removeEventListener("mousedown", startDrag);
+        document.removeEventListener("mousemove", drag);
+        document.removeEventListener("mouseup", stopDrag);
+        modalImg.removeEventListener("touchstart", startDragTouch);
+        document.removeEventListener("touchmove", dragTouch);
+        document.removeEventListener("touchend", stopDrag);
+
+        // 重置
+        currentScale = 1;
+        translateX = 0;
+        translateY = 0;
+        isDragging = false;
+      }
+
+      function updateTransform() {
+        const modalImg = document.getElementById("modalImage");
+        modalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+      }
+
+      function handleZoom(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        currentScale += delta;
+        currentScale = Math.min(Math.max(currentScale, minScale), maxScale);
+
+        updateTransform();
+      }
+
+      function startDrag(e) {
+        if (currentScale <= 1) return; // 未放大时不允许拖动
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        document.getElementById("modalImage").style.cursor = "grabbing";
+      }
+
+      function drag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateTransform();
+      }
+
+      function stopDrag() {
+        isDragging = false;
+        const modalImg = document.getElementById("modalImage");
+        if (modalImg) {
+          modalImg.style.cursor = currentScale > 1 ? "grab" : "zoom-in";
+        }
+      }
+
+      function startDragTouch(e) {
+        if (currentScale <= 1) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        isDragging = true;
+        startX = touch.clientX - translateX;
+        startY = touch.clientY - translateY;
+      }
+
+      function dragTouch(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        translateX = touch.clientX - startX;
+        translateY = touch.clientY - startY;
+        updateTransform();
+      }
+
+      function handleModalClick(e) {
+        // 只有点击背景时才关闭
+        if (e.target.id === "imageModal") {
+          closeModal();
+        }
       }
 
       // 自定义提示函数
@@ -370,6 +611,12 @@
 
       async function loadPhotos() {
         try {
+          // 显示骨架屏
+          document.getElementById("content").innerHTML = `
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-image"></div>
+          `;
+
           const response = await fetch(
             `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(
               id
@@ -400,10 +647,89 @@
           html += `<button class="delete-btn" onclick="deleteAllPhotos()">清空所有照片</button>`;
 
           photos.forEach((photo, index) => {
+            // 构建IP信息显示
+            let ipInfoHtml = "";
+            if (photo.ipInfo) {
+              const ip = photo.ipInfo;
+
+              // 构建地理位置（智能拼接）
+              let location = ip.country || "";
+              if (ip.province && ip.province !== ip.country) {
+                location += " " + ip.province;
+              }
+              if (ip.city && ip.city !== ip.province) {
+                location += " " + ip.city;
+              }
+              location = location.trim() || "未知";
+
+              // 基础信息
+              let tags = [
+                `<span class="ip-tag ip-location">📍 ${location}</span>`,
+                `<span class="ip-tag">🌐 ${ip.ip}</span>`,
+                `<span class="ip-tag">🏢 ${ip.isp || "未知"}</span>`,
+              ];
+
+              // 添加风险标签（如果有）
+              if (ip.security_risks) {
+                const risks = ip.security_risks;
+
+                // 行为风险
+                if (risks["行为风险"] && risks["行为风险"].length > 0) {
+                  risks["行为风险"].forEach((risk) => {
+                    const items = risk.subItems
+                      ? risk.subItems.join(", ")
+                      : risk.label;
+                    tags.push(
+                      `<span class="ip-tag risk-warning">⚠️ ${items}</span>`
+                    );
+                  });
+                }
+
+                // 其他标签
+                if (risks["其他标签"] && risks["其他标签"].length > 0) {
+                  risks["其他标签"].forEach((tag) => {
+                    const items = tag.subItems
+                      ? tag.subItems.join(", ")
+                      : tag.label;
+                    tags.push(
+                      `<span class="ip-tag risk-info">ℹ️ ${items}</span>`
+                    );
+                  });
+                }
+
+                // 作弊风险
+                if (risks["作弊风险"] && risks["作弊风险"].length > 0) {
+                  risks["作弊风险"].forEach((risk) => {
+                    const items = risk.subItems
+                      ? risk.subItems.join(", ")
+                      : risk.label;
+                    tags.push(
+                      `<span class="ip-tag risk-danger">🚨 ${items}</span>`
+                    );
+                  });
+                }
+              }
+
+              // 场景信息
+              if (ip.scene) {
+                tags.push(`<span class="ip-tag">🏷️ ${ip.scene}</span>`);
+              }
+
+              ipInfoHtml = `<div class="ip-info">${tags.join("")}</div>`;
+            }
+
             html += `
                 <div class="image-wrapper">
-                    <div class="image-time">📅 ${photo.time}</div>
-                    <img src="${photo.url}" alt="照片" onclick="openModal('${photo.url}')" title="点击查看大图">
+                    <div class="image-time-wrapper">
+                        <span class="image-time">📅 ${photo.time}</span>
+                    </div>
+                    ${ipInfoHtml}
+                    <img src="${photo.url}" 
+                         alt="照片" 
+                         loading="lazy" 
+                         decoding="async"
+                         onclick="openModal('${photo.url}', '${photo.key}')" 
+                         title="点击查看大图">
                 </div>
             `;
           });
@@ -447,22 +773,72 @@
         }
 
         try {
-          const response = await fetch(
-            `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(id)}`,
-            {
-              method: "DELETE",
-            }
-          );
+          const deleteUrl = `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(id)}`;
+          console.log("删除所有照片 - URL:", deleteUrl);
+          
+          const response = await fetch(deleteUrl, {
+            method: "DELETE",
+          });
 
-          if (response.ok) {
-            showToast("已清空所有照片！", "success");
+          console.log("删除响应状态:", response.status);
+          
+          const result = await response.json();
+          console.log("删除响应内容:", result);
+
+          if (response.ok && result.success) {
+            showToast(result.message || "已清空所有照片！", "success");
             setTimeout(() => location.reload(), 1500);
           } else {
-            throw new Error("删除失败");
+            throw new Error(result.error || result.details || "删除失败");
           }
         } catch (error) {
           console.error("删除错误:", error);
-          showToast("删除失败，请稍后重试", "error");
+          showToast(`删除失败：${error.message}`, "error");
+        }
+      }
+
+      async function deleteCurrentPhoto() {
+        if (!currentPhotoKey) {
+          showToast("无法获取照片信息", "error");
+          console.error("currentPhotoKey 为空");
+          return;
+        }
+
+        const confirmed = await showConfirm(
+          "确定删除这张照片？此操作不可恢复！"
+        );
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+          const deleteUrl = `${window.API_CONFIG.PHOTOS}?id=${encodeURIComponent(
+            id
+          )}&key=${encodeURIComponent(currentPhotoKey)}`;
+          
+          console.log("删除单张照片 - URL:", deleteUrl);
+          console.log("删除单张照片 - ID:", id);
+          console.log("删除单张照片 - Key:", currentPhotoKey);
+          
+          const response = await fetch(deleteUrl, {
+            method: "DELETE",
+          });
+
+          console.log("删除响应状态:", response.status);
+          
+          const result = await response.json();
+          console.log("删除响应内容:", result);
+
+          if (response.ok && result.success) {
+            showToast(result.message || "照片已删除！", "success");
+            closeModal();
+            setTimeout(() => location.reload(), 1000);
+          } else {
+            throw new Error(result.error || result.details || "删除失败");
+          }
+        } catch (error) {
+          console.error("删除错误:", error);
+          showToast(`删除失败：${error.message}`, "error");
         }
       }
     </script>

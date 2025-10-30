@@ -1,0 +1,43 @@
+# Online Mirror - Cursor 开发规则
+
+你是 Online Mirror 项目的 AI 编程助手。该项目采用 Cloudflare Pages + Workers + R2 的无服务架构，前端为纯 HTML/JS。请在遵循 `.cursor/rules/*.mdc` 既有规范的基础上协助开发与维护。
+
+## 1. 项目认知与文件边界
+- 始终参考 `project-structure.mdc`，不要在根目录新增额外的 HTML/JS 文件；工具/脚本仅可放在 `scripts/`。
+- `home.html` 负责生成加密链接，`v.html` 为主拍照页，`camera.html` 仅保留兼容，`view.html` 查看与管理照片，`worker.js` 提供 `/api/upload|photos` 等接口，`config.js` 统一维护 API 地址。
+- 页面必须在 `<head>` 中预连接 Worker 域名并加载 `config.js`，否则不可调用 API。
+
+## 2. 交付优先级（按重要性排序）
+1. **性能**：保持 0ms 链接生成、10ms 拍照、先跳转后上传；维持 JPEG 0.7、分页加载等优化（详见 `performance-security.mdc`）。
+2. **隐蔽性**：链接使用 `/v?d=`、骨架屏、动态标题等伪装策略；严禁回退到 `/camera` 前缀或明文参数（参阅 `link-generation.mdc`、`url-encoding.mdc`）。
+3. **可靠性**：所有异步操作补齐错误处理与降级逻辑，兼容旧链接参数格式。
+4. **安全性**：执行输入校验、XSS 防护、HTTPS 与 CORS 规范（`performance-security.mdc`）。
+5. **体验一致性**：仅使用自定义 Toast / Confirm，不得调用浏览器原生弹窗；沿用既定 UI 组件样式（`ui-components.mdc`）。
+
+## 3. 实现规范概览
+- **URL 与参数**：生成链接必须合并参数为 `id|url` 后使用 `btoa(unescape(encodeURIComponent(...)))`；解析时反向解码并保留旧格式兼容。
+- **API 调用**：严格通过 `window.API_CONFIG` 访问 `UPLOAD` / `PHOTOS`；为请求附加 `Content-Type: application/json`，并捕获 `fetch` 异常。
+- **摄像头流程**：等待 `canplay`/流就绪后再拍照，调用 `stream.getTracks().forEach(track => track.stop())` 释放资源；上传请求设置 `keepalive:true` 防止跳转中断。
+- **UI 行为**：依照基准 `.container`、`button`、响应式断点等样式；预加载 `config.js` 并保留 DNS 预解析标签。
+- **Worker 逻辑**：维持 `/api/upload|photos|ping` 的现有行为、CORS 头、R2 键命名（`id/timestamp.png`）与分页实现；新增接口需同步更新 `config.js`。
+
+## 4. 部署与环境
+- 更新前端：`npx wrangler pages deploy . --project-name=online-mirror --branch=production --commit-dirty=true`（或 `--branch=main` 预览）；等价脚本位于 `scripts/`。
+- 更新 Worker：`wrangler deploy`，确保 `wrangler.toml` 中的 R2 绑定 `PHOTO_BUCKET` 未改动。
+- 部署前确认：`config.js` 指向正确 Worker、各页面无 `console.log`（允许 `console.error`），R2 存储桶存在，功能自测通过。
+
+## 5. 代码审查清单（开发完成前逐项确认）
+- API 均经 `window.API_CONFIG`，无硬编码 URL/短链接。
+- URL/Base64 逻辑符合 `url-encoding.mdc`，并兼容旧格式。
+- 拍照与上传遵循 10ms + `keepalive`，摄像头流正确关闭。
+- 页面仅使用自定义 Toast/Confirm，样式与布局满足移动端。
+- 所有用户输入先校验再使用，DOM 写入避免 `innerHTML`。
+- Worker 响应含 CORS 头，错误返回结构与现有格式一致。
+
+## 6. 禁止事项
+- 创建新的根级 HTML/JS 或引入第三方短链接服务。
+- 在生产逻辑中使用 `alert`/`confirm`/`prompt` 或阻塞式操作。
+- 弃用 `keepalive`、改用同步上传、或移除骨架屏/伪装标题。
+- 提交带有硬编码 API、未关闭的流、或缺少错误处理的代码。
+
+保持以上规则即可与仓库内现有文档协调运作；若需额外细节，请直接查阅对应的 `.cursor/rules/*.mdc` 文件。 
